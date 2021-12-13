@@ -148,7 +148,7 @@ def get_api_outfits():
     :return: sorted list of queried outfits
     """
     
-    theme = request.args.get('theme', default='', type=str)
+
     sort = request.args.get('sort', default='likes', type=str)  # likes | price | date
     min_price = request.args.get('minPrice', default=0, type=float)
     max_price = request.args.get('maxPrice', default=sys.float_info.max, type=float)
@@ -160,12 +160,12 @@ def get_api_outfits():
                           Outfit.id == Product.outfitid).filter(Outfit.price >= min_price, 
                           Outfit.price <= max_price)
     
-    if theme != '':
+    for theme in selectors['themes']:
         q = q.filter(Theme.name == theme)
-
+    
     outfit_list = []
     outfit = {'id': None, 'theme': [], 'productid': []}
-    for o, t, p in q.order_by(Outfit.id, Theme.name, Product.productid, text(sort)):
+    for o, t, p in q.order_by(Outfit.id, Theme.name, Product.productid):
         if o.id != outfit['id']: 
             outfit_list.append(outfit.copy())
             outfit['id'] = o.id
@@ -188,10 +188,11 @@ def get_api_outfits():
             outfit['part'] += [p.part]
             outfit['designer'] += [p.designer]
             outfit['collection'] += [p.collection]
+    
     outfit_list.append(outfit.copy())
-    print([outfit['likes'] for outfit in outfit_list[1:]])
-
-    return jsonify(outfit_list[1:limit+1])
+    
+    
+    return jsonify(sorted(outfit_list[1:limit+1], key = lambda outfit: outfit[sort], reverse=(sort=='likes')))
     
 
 @api.route('/api/trending', methods = ['GET'])
@@ -240,8 +241,7 @@ def get_api_trending():
             outfit['designer'] += [p.designer]
             outfit['collection'] += [p.collection]
     outfit_list.append(outfit.copy())
-    print([outfit['likes'] for outfit in outfit_list[1:]])
-
+   
     return jsonify(outfit_list[1:])
     
     
@@ -301,22 +301,26 @@ def parse_query(query):
         'collections': [list of product collections ...]
         'designers': [list of product designers ...]
     """
-    selectors = {
-        'themes': [],
-        'parts': [],
-        'collections': [],
-        'designers': []
-    }
+    
 
     settings = load_settings()
-    selectors['theme'] += list(set(re.findall(r'[#@][\w]+', query)))
     all_parts = list(settings['tree'].keys())
     all_collections = [collection for part in settings['tree'].values() for collection in part.keys()]
     all_designers = []
 
+    selectors = {
+        'themes': [],
+        'parts': all_parts,
+        'collections': all_collections,
+        'designers': []
+    }
+
     if query: 
-        re.findall(r"(?=("+'|'.join(selectors['collections'])+r"))", query)
-  
+        selectors['parts'] +=re.findall(r"(?=("+'|'.join(all_parts)+r"))", query)
+        selectors['collections'] +=re.findall(r"(?=("+'|'.join(selectors['collections'])+r"))", query)
+        selectors['themes'] += list(set(re.findall(r'[#@][\w]+', query)))
+    print('query', query)
+    print('themes', selectors['themes'])
 
     return selectors
 
