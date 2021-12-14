@@ -7,7 +7,7 @@ from flask import Flask
 from flask_migrate import Migrate
 
 
-app = Flask(__name__, static_folder='./build', static_url_path='/')
+app = Flask(__name__, static_folder ='./build', static_url_path='/')
 app.register_blueprint(api)
 
 
@@ -25,6 +25,9 @@ def get_wardrobe():
 def get_share():
     return 'Share'
 
+@app.errorhandler(404)
+def not_found(e):
+    return app.send_static_file('index.html')
 
 def build_db_url(user, pwd, host, port, dbname):
     return f'postgresql://{user}:{pwd}@{host}:{port}/{dbname}'
