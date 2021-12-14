@@ -13,7 +13,7 @@ app.register_blueprint(api)
 
 @app.route('/')
 def get_home():
-    return 'Home'
+    return 'hoe'
 
 
 @app.route('/wardrobe')
